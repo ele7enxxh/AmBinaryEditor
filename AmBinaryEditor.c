@@ -924,7 +924,8 @@ int HandleAXML(PARSER *ap, OPTIONS *options)
 
 	if (ap == NULL || ap->string_chunk == NULL || ap->resourceid_chunk == NULL || ap->xmlcontent_chunk == NULL || options == NULL)
 	{
-		return -1;
+        result = -1;
+		goto bail;
 	}
 
 	switch (options->command)
@@ -938,13 +939,14 @@ int HandleAXML(PARSER *ap, OPTIONS *options)
 	}
 	if (result != 0)
 	{
-        return result;
+        goto bail;
 	}
 	ap->header->size += extra_size;
 
 	if (InitBuff(&buf) != 0)
 	{
-		return -1;
+		result = -1;
+		goto bail;
 	}
 
 	RebuildAXML(ap, &buf);
@@ -956,17 +958,25 @@ int HandleAXML(PARSER *ap, OPTIONS *options)
 	if (fp == NULL)
 	{
 		fprintf(stderr, "Error: open output file failed.\n");
-		return -1;
+		result = -1;
+		goto bail;
 	}
 
 	ret = fwrite(buf.data, 1, buf.cur, fp);
 	if (ret != buf.cur)
 	{
 		fprintf(stderr, "Error: fwrite outbuf error.\n");
-		return -1;
+		result = -1;
 	}
 
 	fclose(fp);
 
-	return 0;
+bail:
+    free(ap->header);
+    free(ap->string_chunk);
+    free(ap->resourceid_chunk);
+    FreeXmlContentTree(ap->xmlcontent_chunk);
+    free(ap);
+
+	return result;
 }

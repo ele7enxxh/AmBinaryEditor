@@ -336,5 +336,6 @@ bail:
         result = -1;
     }
 
+    free(options);
     return result;
 }

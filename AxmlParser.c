@@ -45,6 +45,47 @@ static void CopyData(PARSER *ap, unsigned char * to, size_t size)
  *  \retval -1 Converting error.
  *  \retval positive Bytes of UTF-8 string, including terminal zero.
  */
+
+void FreeXmlContentTree(XMLCONTENTCHUNK *content)
+ {
+    XMLCONTENTCHUNK *node = content;
+    ATTRIBUTE *list = NULL;
+    ATTRIBUTE *attr = NULL;
+    while (node)
+    {
+        if (node->chunk_type == CHUNK_STARTNS)
+        {
+            free(node->start_ns_chunk);
+        }
+        else if (node->chunk_type == CHUNK_ENDNS)
+        {
+            free(node->end_ns_chunk);
+        }
+        else if (node->chunk_type == CHUNK_STARTTAG)
+        {
+            list = node->start_tag_chunk->attr;
+            while (list)
+            {
+                attr = list;
+                list = list->next;
+                free(attr);
+
+            }
+            free(node->start_tag_chunk);
+        }
+        else if (node->chunk_type == CHUNK_ENDTAG)
+        {
+            free(node->end_tag_chunk);
+        }
+        else if (node->chunk_type == CHUNK_TEXT)
+        {
+            free(node->text_chunk);
+        }
+        node = node->child;
+    }
+    free(node);
+ }
+
 static size_t UTF16LEtoUTF8(unsigned char *to, unsigned char *from, size_t nch)
 {
 	size_t total = 0;
@@ -245,6 +286,9 @@ static int ParseStringChunk(PARSER *ap)
 		ap->string_chunk->string_offset = NULL;
 		free(ap->string_chunk->string_poll_data);
 		ap->string_chunk->string_poll_data = NULL;
+
+		free(ap->string_chunk->string_offset);
+		free(ap->string_chunk->string_poll_data);
 		return -1;
 	}
 
@@ -408,9 +452,10 @@ int ParserAxml(PARSER *ap, char *in_buf, size_t in_size)
 
 	if ( ParseHeadChunk(ap) != 0 || ParseStringChunk(ap) != 0 || ParseResourceChunk(ap) != 0 || ParserXmlContentChunk(ap) != 0)
 	{
+        free(ap->header);
 		free(ap->string_chunk);
 		free(ap->resourceid_chunk);
-		free(ap->xmlcontent_chunk);
+		FreeXmlContentTree(ap->xmlcontent_chunk);
 		free(ap);
 		return -1;
 	}

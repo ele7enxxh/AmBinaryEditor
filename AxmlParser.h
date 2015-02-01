@@ -136,3 +136,4 @@ typedef struct
 } PARSER;
 
 int ParserAxml(PARSER *ap, char *in_buf, size_t in_size);
+void FreeXmlContentTree(XMLCONTENTCHUNK *content);
