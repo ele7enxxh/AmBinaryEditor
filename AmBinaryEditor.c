@@ -441,7 +441,7 @@ static int InitAttribute(PARSER *ap, ATTRIBUTE *attr, const char *name, uint32_t
 	}
 	else if (type == ATTR_FLOAT)
 	{
-        f = atof(value);
+        f = (float)atof(value);
         attr->data = ((uint32_t *)&f)[0];
 	}
 	else if (type == ATTR_DIMENSION)
