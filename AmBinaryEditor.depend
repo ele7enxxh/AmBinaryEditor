@@ -1,30 +1,34 @@
 # depslib dependency file v1.0
-1422445073 source:/home/auo/Study/Work/AmBinaryEditor/AmBinaryEditor.c
+1422844308 source:/home/auo/Study/Work/AmBinaryEditor/AmBinaryEditor.c
 	"AmBinaryEditor.h"
-
-1422443415 source:/home/auo/Study/Work/AmBinaryEditor/AxmlParser.c
-	"AxmlParser.h"
-
-1422443423 /home/auo/Study/Work/AmBinaryEditor/AxmlParser.h
 	<stdio.h>
-	<stdlib.h>
-	<stdint.h>
 	<string.h>
 
-1422441325 source:/home/auo/Study/Work/AmBinaryEditor/main.c
+1422843893 source:/home/auo/Study/Work/AmBinaryEditor/AxmlParser.c
+	"AxmlParser.h"
+	<stdio.h>
+	<string.h>
+
+1422842374 /home/auo/Study/Work/AmBinaryEditor/AxmlParser.h
+	<stdint.h>
+	<stdlib.h>
+
+1422842941 source:/home/auo/Study/Work/AmBinaryEditor/main.c
 	"AmBinaryEditor.h"
 	<stdio.h>
 	<stdlib.h>
+	<string.h>
 
-1422436463 source:/home/auo/Study/Work/AmBinaryEditor/options.c
+1422624075 source:/home/auo/Study/Work/AmBinaryEditor/options.c
 	"options.h"
 	<stdio.h>
 	<stdlib.h>
 
-1422441588 /home/auo/Study/Work/AmBinaryEditor/AmBinaryEditor.h
+1422666855 /home/auo/Study/Work/AmBinaryEditor/AmBinaryEditor.h
 	"AxmlParser.h"
 	"options.h"
+	<stdlib.h>
 
-1422436398 /home/auo/Study/Work/AmBinaryEditor/options.h
+1422540705 /home/auo/Study/Work/AmBinaryEditor/options.h
 	<stdint.h>
 

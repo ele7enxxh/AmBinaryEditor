@@ -14,6 +14,7 @@ static int CopyUint32(BUFF *buf, uint32_t value)
 	{
 		buf->size += 32*1024;
 		buf->data = (char *)realloc(buf->data, buf->size);
+		memset(buf->data + buf->cur, 0, buf->size - buf->cur);
 		if (buf->data == NULL)
 		{
 			fprintf(stderr, "Error: realloc buffer.\n");
@@ -37,6 +38,7 @@ static int CopyDataToBuf(BUFF *buf, unsigned char *from, size_t size)
 	{
 		buf->size += 32*1024;
 		buf->data = (char *)realloc(buf->data, buf->size);
+		memset(buf->data + buf->cur, 0, buf->size - buf->cur);
 		if (buf->data == NULL)
 		{
 			fprintf(stderr, "Error: realloc buffer.\n");
@@ -310,9 +312,12 @@ static uint32_t GetStringIndex(STRING_CHUNK *string_chunk, const char *str, int 
 		return -1;
 	}
 
-	sc->strings[sc->string_count - 1] = (unsigned char *)str;
+	sc->strings[sc->string_count - 1] = (unsigned char *)malloc(strlen(str) + 1);
+	strcpy((char *)sc->strings[sc->string_count - 1], str);
 
 	sc->chunk_size += (sizeof(uint32_t) + utf16le_size);
+
+	free(out);
 
 	return sc->string_count - 1;
 }
@@ -636,6 +641,8 @@ static int ModifyAttribute(PARSER *ap, char *tag_name, uint32_t deep, uint32_t a
         list = list->next;
     }
 
+    free(attr);
+
     return 0;
 }
 
@@ -842,6 +849,8 @@ static int RemoveTagChunk(PARSER *ap, char *tag_name, uint32_t deep, int32_t *ex
     STRING_CHUNK *sc = ap->string_chunk;
     XMLCONTENTCHUNK *node = NULL;
     XMLCONTENTCHUNK *target_end = NULL;
+    ATTRIBUTE *list = NULL;
+    ATTRIBUTE *attr = NULL;
     int degree = 0;
 
     if (tag_name == NULL || deep < 0)
@@ -893,7 +902,17 @@ static int RemoveTagChunk(PARSER *ap, char *tag_name, uint32_t deep, int32_t *ex
 	target_end->child->parent = target_end->parent;
 
 	*extra_size -= (target_start->chunk_size + target_end->chunk_size);
+
+	list = target_start->start_tag_chunk->attr;
+	while (list)
+	{
+        attr = list;
+        list = list->next;
+        free(attr);
+	}
+	free(target_start->start_tag_chunk);
 	free(target_start);
+	free(target_end->end_tag_chunk);
 	free(target_end);
 
     return 0;
@@ -950,7 +969,6 @@ int HandleAXML(PARSER *ap, OPTIONS *options)
 	}
 
 	RebuildAXML(ap, &buf);
-
 	//printf("buf size: %x\n", buf.cur);
 	//printf("ap size: %x\n", ap->header->size);
 
@@ -962,6 +980,7 @@ int HandleAXML(PARSER *ap, OPTIONS *options)
 		goto bail;
 	}
 
+
 	ret = fwrite(buf.data, 1, buf.cur, fp);
 	if (ret != buf.cur)
 	{
@@ -969,14 +988,15 @@ int HandleAXML(PARSER *ap, OPTIONS *options)
 		result = -1;
 	}
 
-	fclose(fp);
+    if (fp != NULL)
+    {
+        fclose(fp);
+    }
 
 bail:
-    free(ap->header);
-    free(ap->string_chunk);
-    free(ap->resourceid_chunk);
-    FreeXmlContentTree(ap->xmlcontent_chunk);
-    free(ap);
-
+    if (buf.size > 0)
+    {
+        free(buf.data);
+    }
 	return result;
 }

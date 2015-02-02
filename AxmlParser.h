@@ -120,6 +120,7 @@ typedef struct _XMLCONTENTCHUNK
 
 	struct _XMLCONTENTCHUNK *child;	/* parent->childs link */
     struct _XMLCONTENTCHUNK *parent;	/* child->parent link */
+    struct _XMLCONTENTCHUNK *last;
 } XMLCONTENTCHUNK;
 
 /* a parser, also a axml parser handle for user */
@@ -136,4 +137,3 @@ typedef struct
 } PARSER;
 
 int ParserAxml(PARSER *ap, char *in_buf, size_t in_size);
-void FreeXmlContentTree(XMLCONTENTCHUNK *content);

@@ -15,11 +15,11 @@ static uint32_t GetInt32(PARSER *ap)
 }
 
 /* skip some uknown of useless fields, don't parse them */
-static void SkipInt32(PARSER *ap, size_t num)
+/*static void SkipInt32(PARSER *ap, size_t num)
 {
 	ap->cur += 4 * num;
 	return;
-}
+}*/
 
 /* if no more byte need to be parsed */
 static int NoMoreData(PARSER *ap)
@@ -45,47 +45,6 @@ static void CopyData(PARSER *ap, unsigned char * to, size_t size)
  *  \retval -1 Converting error.
  *  \retval positive Bytes of UTF-8 string, including terminal zero.
  */
-
-void FreeXmlContentTree(XMLCONTENTCHUNK *content)
- {
-    XMLCONTENTCHUNK *node = content;
-    ATTRIBUTE *list = NULL;
-    ATTRIBUTE *attr = NULL;
-    while (node)
-    {
-        if (node->chunk_type == CHUNK_STARTNS)
-        {
-            free(node->start_ns_chunk);
-        }
-        else if (node->chunk_type == CHUNK_ENDNS)
-        {
-            free(node->end_ns_chunk);
-        }
-        else if (node->chunk_type == CHUNK_STARTTAG)
-        {
-            list = node->start_tag_chunk->attr;
-            while (list)
-            {
-                attr = list;
-                list = list->next;
-                free(attr);
-
-            }
-            free(node->start_tag_chunk);
-        }
-        else if (node->chunk_type == CHUNK_ENDTAG)
-        {
-            free(node->end_tag_chunk);
-        }
-        else if (node->chunk_type == CHUNK_TEXT)
-        {
-            free(node->text_chunk);
-        }
-        node = node->child;
-    }
-    free(node);
- }
-
 static size_t UTF16LEtoUTF8(unsigned char *to, unsigned char *from, size_t nch)
 {
 	size_t total = 0;
@@ -261,24 +220,26 @@ static int ParseStringChunk(PARSER *ap)
 
 	/* strings' offsets table */
 	ap->string_chunk->string_offset = (uint32_t *)malloc(ap->string_chunk->string_count * sizeof(uint32_t));
-
 	for (i = 0; i < ap->string_chunk->string_count; i++)
 	{
 		ap->string_chunk->string_offset[i] = GetInt32(ap);
 	}
 
-	/* skip style' offsets table */
+	/* styles' offsets table */
 	if (ap->string_chunk->style_count != 0)
 	{
-		SkipInt32(ap, ap->string_chunk->style_count);
+        ap->string_chunk->style_offset = (uint32_t *)malloc(ap->string_chunk->style_count * sizeof(uint32_t));
+        for (i = 0; i < ap->string_chunk->style_count; i++)
+        {
+            ap->string_chunk->style_offset[i] = GetInt32(ap);
+        }
+		//SkipInt32(ap, ap->string_chunk->style_count);
 	}
 
 	/* save string poll data */
 	ap->string_chunk->string_poll_len = (ap->string_chunk->style_poll_offset ? ap->string_chunk->style_poll_offset : ap->string_chunk->chunk_size) - ap->string_chunk->string_poll_offset;
 	ap->string_chunk->string_poll_data = (unsigned char *)malloc(ap->string_chunk->string_poll_len);
-
 	CopyData(ap, ap->string_chunk->string_poll_data, ap->string_chunk->string_poll_len);
-
 	if (SetStringTable(ap) != 0)
 	{
 		fprintf(stderr, "Error: setstringtable return failed.\n");
@@ -292,9 +253,13 @@ static int ParseStringChunk(PARSER *ap)
 		return -1;
 	}
 
-	if (ap->string_chunk->style_poll_offset != 0)
+	/*save style poll data */
+	if (ap->string_chunk->style_poll_offset != 0 && ap->string_chunk->style_count != 0)
 	{
-		SkipInt32(ap, (ap->string_chunk->chunk_size - ap->string_chunk->style_poll_offset) / 4);
+        ap->string_chunk->style_poll_len = ap->string_chunk->chunk_size - ap->string_chunk->style_poll_offset;
+        ap->string_chunk->style_poll_data = (unsigned char *)malloc(ap->string_chunk->style_poll_len);
+        CopyData(ap, ap->string_chunk->style_poll_data, ap->string_chunk->style_poll_len);
+		//SkipInt32(ap, (ap->string_chunk->chunk_size - ap->string_chunk->style_poll_offset) / 4);
 	}
 
 	return 0;
@@ -328,7 +293,7 @@ static int ParseResourceChunk(PARSER *ap)
 	return 0;
 }
 
-static void AddElement(PARSER *ap, XMLCONTENTCHUNK *content, XMLCONTENTCHUNK **target_parent)
+static void AddElement(PARSER *ap, XMLCONTENTCHUNK *content)
 {
 	if (ap->xmlcontent_chunk == NULL)
 	{
@@ -338,19 +303,24 @@ static void AddElement(PARSER *ap, XMLCONTENTCHUNK *content, XMLCONTENTCHUNK **t
 
 	else
 	{
-		content->parent = *target_parent;
-		(*target_parent)->child = content;
+		//content->parent = *target_parent;
+		//(*target_parent)->child = content;
+		//content->child = NULL;
+		content->parent = ap->xmlcontent_chunk->last;
+		ap->xmlcontent_chunk->last->child = content;
 		content->child = NULL;
 	}
 
-	*target_parent = content;
+	//*target_parent = content;
+	ap->xmlcontent_chunk->last = content;
 }
 
 static int ParserXmlContentChunk(PARSER *ap)
 {
 	int ret = 0;
-	XMLCONTENTCHUNK *content;
-	XMLCONTENTCHUNK **target_parent = (XMLCONTENTCHUNK **)malloc(4);
+	XMLCONTENTCHUNK *content = NULL;
+	//XMLCONTENTCHUNK target_parent;
+	//XMLCONTENTCHUNK **target_parent = (XMLCONTENTCHUNK **)malloc(4);
 
 	while(1)
 	{
@@ -429,7 +399,7 @@ static int ParserXmlContentChunk(PARSER *ap)
 			content->text_chunk->unknown_field_2 = GetInt32(ap);
 		}
 
-		AddElement(ap, content, target_parent);
+		AddElement(ap, content);
 	}
 
 	return ret;
@@ -452,11 +422,6 @@ int ParserAxml(PARSER *ap, char *in_buf, size_t in_size)
 
 	if ( ParseHeadChunk(ap) != 0 || ParseStringChunk(ap) != 0 || ParseResourceChunk(ap) != 0 || ParserXmlContentChunk(ap) != 0)
 	{
-        free(ap->header);
-		free(ap->string_chunk);
-		free(ap->resourceid_chunk);
-		FreeXmlContentTree(ap->xmlcontent_chunk);
-		free(ap);
 		return -1;
 	}
 

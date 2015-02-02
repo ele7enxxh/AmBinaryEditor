@@ -8,6 +8,115 @@
 #include <stdlib.h>
 #include <string.h>
 
+static void FreeXmlContentTree(XMLCONTENTCHUNK *content)
+ {
+    XMLCONTENTCHUNK *node = content;
+    ATTRIBUTE *list = NULL;
+    ATTRIBUTE *attr = NULL;
+
+    if (content == NULL)
+    {
+        return;
+    }
+
+    while (node)
+    {
+        if (node->chunk_type == CHUNK_STARTNS)
+        {
+            free(node->start_ns_chunk);
+        }
+        else if (node->chunk_type == CHUNK_ENDNS)
+        {
+            free(node->end_ns_chunk);
+        }
+        else if (node->chunk_type == CHUNK_STARTTAG)
+        {
+            list = node->start_tag_chunk->attr;
+            while (list)
+            {
+                attr = list;
+                list = list->next;
+                free(attr);
+            }
+            free(node->start_tag_chunk);
+        }
+        else if (node->chunk_type == CHUNK_ENDTAG)
+        {
+            free(node->end_tag_chunk);
+        }
+        else if (node->chunk_type == CHUNK_TEXT)
+        {
+            free(node->text_chunk);
+        }
+        node = node->child;
+    }
+
+    while (content)
+    {
+        node = content;
+        content = content->child;
+        free(node);
+    }
+ }
+
+static void FreeAll(PARSER *ap)
+{
+    int i;
+    STRING_CHUNK *sc = NULL;
+    RESOURCEID_CHUNK *rc = NULL;
+
+    if (ap == NULL)
+    {
+        return;
+    }
+
+    sc =ap->string_chunk;
+    rc = ap->resourceid_chunk;
+
+    if (ap->buf != NULL)
+    {
+        free(ap->buf);
+    }
+
+    if (ap->header != NULL)
+    {
+        free(ap->header);
+    }
+
+    if (sc != NULL)
+    {
+        if (sc->string_count != 0)
+        {
+            free(sc->string_offset);
+            free(sc->string_poll_data);
+            for (i = 0; i < sc->string_count; i++)
+            {
+                free(sc->strings[i]);
+            }
+            free(sc->strings);
+        }
+        if (sc->style_count != 0)
+        {
+            free(sc->style_offset);
+            free(sc->style_poll_data);
+        }
+        free(sc);
+    }
+
+    if (rc != NULL)
+    {
+        if (rc->resourceids_count != 0)
+        {
+            free(rc->resourceids);
+        }
+        free(rc);
+    }
+
+    FreeXmlContentTree(ap->xmlcontent_chunk);
+
+    free(ap);
+}
+
 static int HandleCommand(PARSER *ap, OPTIONS *options)
 {
     return HandleAXML(ap, options);
@@ -323,7 +432,9 @@ int main(int argc, char *argv[])
 	if (ParserAxml(ap, in_buf, in_size) == -1)
 	{
 		fprintf(stderr, "Error: axml parser.\n");
-		return -1;
+		result = -1;
+		fclose(fp);
+		goto bail;
 	}
     fclose(fp);
 
@@ -337,5 +448,6 @@ bail:
     }
 
     free(options);
+    FreeAll(ap);
     return result;
 }
