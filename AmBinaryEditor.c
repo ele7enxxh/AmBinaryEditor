@@ -575,7 +575,7 @@ static int AddAttribute(PARSER *ap, char *tag_name, uint32_t deep, uint32_t attr
     list = target->start_tag_chunk->attr;
     if (list == NULL)
     {
-        list = attr;
+        target->start_tag_chunk->attr = attr;
     }
     else
     {
