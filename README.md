@@ -2,5 +2,5 @@
 
 AndroidManifest Binary Editor
 
-http://secauo.com/AmBinaryEditor.html
+http://secauo.com/AndroidManifest-Binary-Editor.html
 
