@@ -9,7 +9,7 @@ void Usage(void)
 {
 	fprintf(stderr, "\t------------------------------------------\n");
 	fprintf(stderr, "\t|==== Android Manifest Binary Editor ====|\n");
-	fprintf(stderr, "\t----------------- by enimey --------------\n");
+	fprintf(stderr, "\t---------------- by ele7enxxh -------------\n");
 	fprintf(stderr, "\t------------------------------------------\n");
 	fprintf(stderr, "Usage:\n");
     fprintf(stderr,
